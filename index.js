@@ -2,16 +2,26 @@ const express = require('express');
 const { resolve } = require('path');
 
 const app = express();
-const port = 3010;
+const port = 5000;
 
-// Sample student data
-const students = [
-    { student_id: "1", name: "Alice Johnson", total: 433 },
-    { student_id: "2", name: "Bob Smith", total: 410 },
-    { student_id: "3", name: "Charlie Davis", total: 415 },
-    { student_id: "4", name: "David Brown", total: 390 },
-    { student_id: "5", name: "Eva White", total: 450 },
-    // Add more student records as needed
+// Sample book data
+let books = [
+    {
+        book_id: "101",
+        title: "The Great Gatsby",
+        author: "F. Scott Fitzgerald",
+        genre: "Fiction",
+        year: 1925,
+        copies: 5
+    },
+    {
+        book_id: "102",
+        title: "1984",
+        author: "George Orwell",
+        genre: "Dystopian",
+        year: 1949,
+        copies: 3
+    }
 ];
 
 // Middleware to parse JSON request bodies
@@ -25,32 +35,64 @@ app.get('/', (req, res) => {
     res.sendFile(resolve(__dirname, 'pages/index.html'));
 });
 
-// API Endpoint to retrieve students above a given threshold
-app.post('/students/above-threshold', (req, res) => {
-    const { threshold } = req.body;
+// Create a new book
+app.post('/books', (req, res) => {
+    const { book_id, title, author, genre, year, copies } = req.body;
 
     // Input validation
-    if (typeof threshold !== 'number') {
-        return res.status(400).json({ error: 'Invalid input: threshold must be a number.' });
+    if (!book_id || !title || !author || !genre || !year || !copies) {
+        return res.status(400).json({ error: 'All fields are required.' });
     }
 
-    // Filter students based on the threshold
-    const filteredStudents = students.filter(student => student.total > threshold);
+    const newBook = { book_id, title, author, genre, year, copies };
+    books.push(newBook);
+    res.status(201).json(newBook);
+});
 
-    // Prepare response
-    const response = {
-        count: filteredStudents.length,
-        students: filteredStudents.map(student => ({
-            name: student.name,
-            total: student.total
-        }))
-    };
+// Retrieve all books
+app.get('/books', (req, res) => {
+    res.json(books);
+});
 
-    // Send response
-    res.json(response);
+// Retrieve a specific book by ID
+app.get('/books/:id', (req, res) => {
+    const book = books.find(b => b.book_id === req.params.id);
+    if (!book) {
+        return res.status(404).json({ error: 'Book not found.' });
+    }
+    res.json(book);
+});
+
+// Update book information
+app.put('/books/:id', (req, res) => {
+    const book = books.find(b => b.book_id === req.params.id);
+    if (!book) {
+        return res.status(404).json({ error: 'Book not found.' });
+    }
+
+    // Update book details
+    const { title, author, genre, year, copies } = req.body;
+    if (title) book.title = title;
+    if (author) book.author = author;
+    if (genre) book.genre = genre;
+    if (year) book.year = year;
+    if (copies) book.copies = copies;
+
+    res.json(book);
+});
+
+// Delete a book
+app.delete('/books/:id', (req, res) => {
+    const bookIndex = books.findIndex(b => b.book_id === req.params.id);
+    if (bookIndex === -1) {
+        return res.status(404).json({ error: 'Book not found.' });
+    }
+
+    books.splice(bookIndex, 1);
+    res.json({ message: 'Book deleted successfully.' });
 });
 
 // Start the server
 app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Library Management System API listening at http://localhost:${port}`);
 });
